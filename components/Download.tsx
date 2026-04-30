@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { STORE_LINKS } from '@/data/content';
 import Icon from './Icons';
 import SubscribeForm from './SubscribeForm';
@@ -56,14 +57,13 @@ export default function Download() {
 
           <div className="flex flex-wrap justify-center gap-6 mb-12">
             {QUICK_LINKS.map((link, i) => (
-              <>
+              <Fragment key={link.label}>
                 {i > 0 && (
-                  <span key={`sep-${link.label}`} className="text-gray-600" aria-hidden="true">
+                  <span className="text-gray-600" aria-hidden="true">
                     &bull;
                   </span>
                 )}
                 <a
-                  key={link.label}
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -71,7 +71,7 @@ export default function Download() {
                 >
                   {link.label}
                 </a>
-              </>
+              </Fragment>
             ))}
           </div>
 
