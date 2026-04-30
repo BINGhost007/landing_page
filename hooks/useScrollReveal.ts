@@ -1,54 +1,51 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-const observers = new Map<string, IntersectionObserver>();
+type RevealCallback = () => void;
 
-function getSharedObserver(
-  threshold: number,
-  callback: (entry: IntersectionObserverEntry) => void
-): IntersectionObserver {
-  const key = `t-${threshold}`;
-  if (!observers.has(key)) {
+const callbackMap = new Map<Element, RevealCallback>();
+const observerMap = new Map<number, IntersectionObserver>();
+
+function getSharedObserver(threshold: number): IntersectionObserver {
+  if (!observerMap.has(threshold)) {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            callback(entry);
+            const cb = callbackMap.get(entry.target);
+            if (cb) {
+              cb();
+              callbackMap.delete(entry.target);
+            }
             observer.unobserve(entry.target);
           }
         });
       },
       { threshold }
     );
-    observers.set(key, observer);
+    observerMap.set(threshold, observer);
   }
-  return observers.get(key)!;
+  return observerMap.get(threshold)!;
 }
 
 export function useScrollReveal(threshold = 0.1) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const handleIntersect = useCallback(() => {
-    setIsVisible(true);
-  }, []);
-
   useEffect(() => {
     const currentRef = ref.current;
     if (!currentRef) return;
 
-    const observer = getSharedObserver(threshold, (entry) => {
-      if (entry.target === currentRef) {
-        handleIntersect();
-      }
-    });
-
+    callbackMap.set(currentRef, () => setIsVisible(true));
+    const observer = getSharedObserver(threshold);
     observer.observe(currentRef);
+
     return () => {
       observer.unobserve(currentRef);
+      callbackMap.delete(currentRef);
     };
-  }, [threshold, handleIntersect]);
+  }, [threshold]);
 
   return [ref, isVisible] as const;
 }
